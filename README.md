@@ -64,7 +64,7 @@ Quizify 是一个功能强大的 Anki 模板，支持多种交互式学习功能
 <img width="521" alt="选择3" src="https://github.com/user-attachments/assets/28f6496f-cdfd-4ad8-bf17-fe004c7ae758" />
 <img width="521" alt="选择4" src="https://github.com/user-attachments/assets/c8fda1cd-29bf-4004-b694-ce3cbb5c005b" />
 
-## 🛠️ 使用方法
+## 🛠️ 安装方法
 
 下载 [quizify.apkg](https://github.com/e-chehil/anki-quizify/blob/main/Deck/quizify.apkg) 文件导入 Anki。
 
