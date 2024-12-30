@@ -55,14 +55,14 @@ Quizify 是一个功能强大的 Anki 模板，支持多种交互式学习功能
 
 ## 📸 样例截图
 
-<img width="521" alt="填空1" src="https://github.com/user-attachments/assets/cfb3f6dc-fd61-4462-af39-9ffe26bdb331" />
-<img width="521" alt="填空2" src="https://github.com/user-attachments/assets/cd0a9cd0-2026-4891-962c-697a6a056f05" />
-<img width="521" alt="填空3" src="https://github.com/user-attachments/assets/18b3a3d6-585c-4f27-ab91-b2997cbed68e" />
-<img width="521" alt="填空4" src="https://github.com/user-attachments/assets/2fbaa76a-8b45-4c05-9309-fa42053dd861" />
 <img width="521" alt="选择1" src="https://github.com/user-attachments/assets/2aecb47a-5097-449b-84d5-6a4c55d2db76" />
 <img width="521" alt="选择2" src="https://github.com/user-attachments/assets/e655611a-46c3-4d39-9000-3fa819143629" />
 <img width="521" alt="选择3" src="https://github.com/user-attachments/assets/28f6496f-cdfd-4ad8-bf17-fe004c7ae758" />
 <img width="521" alt="选择4" src="https://github.com/user-attachments/assets/c8fda1cd-29bf-4004-b694-ce3cbb5c005b" />
+<img width="521" alt="填空1" src="https://github.com/user-attachments/assets/cfb3f6dc-fd61-4462-af39-9ffe26bdb331" />
+<img width="521" alt="填空2" src="https://github.com/user-attachments/assets/cd0a9cd0-2026-4891-962c-697a6a056f05" />
+<img width="521" alt="填空3" src="https://github.com/user-attachments/assets/18b3a3d6-585c-4f27-ab91-b2997cbed68e" />
+<img width="521" alt="填空4" src="https://github.com/user-attachments/assets/2fbaa76a-8b45-4c05-9309-fa42053dd861" />
 
 ## 🛠️ 安装方法
 
