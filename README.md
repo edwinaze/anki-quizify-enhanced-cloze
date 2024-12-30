@@ -66,7 +66,7 @@ Quizify 是一个功能强大的 Anki 模板，支持多种交互式学习功能
 
 ## 🛠️ 使用方法
 
-下载 quizify.apkg 文件导入 Anki。
+下载 [quizify.apkg](https://github.com/e-chehil/anki-quizify/blob/main/quizify.apkg) 文件导入 Anki。
 
 ## 🤝 开发贡献
 
