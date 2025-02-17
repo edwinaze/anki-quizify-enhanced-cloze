@@ -16,6 +16,33 @@ Contact Details:
 </div>
 
 <script>
+    function playAudio(ele) {
+        const audio = ele.querySelector('audio');
+        if (audio) {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.play();
+        }
+    }
+
+    function playAutoAudio() {
+        const usAudio = document.querySelector('.pronunciation-us audio');
+        const ukAudio = document.querySelector('.pronunciation-uk audio');
+        if (usAudio) {
+            usAudio.pause();
+            usAudio.currentTime = 0;
+            usAudio.play();
+        } else if (ukAudio) {
+            ukAudio.pause();
+            ukAudio.currentTime = 0;
+            ukAudio.play();
+        }
+    }
+
+    var userJs1 = playAutoAudio;
+</script>
+
+<script>
     // Split hierarchical tags
     var tagsContainerEl = document.querySelectorAll(".quizify-tags > *");
     if (tagsContainerEl.length > 0) {
@@ -54,7 +81,7 @@ Contact Details:
     deckEl.innerHTML = html.join("&nbsp;/&nbsp;");
 </script>
 
-<script type="text/javascript">
+<script>
     function toggleReveal(el) {
         const secret = el.querySelector('.secret');
         if (secret.style.display === "inline") {
@@ -187,7 +214,6 @@ Contact Details:
         labels.forEach(label => options.appendChild(label));
     }
 
-
     function restoreOptions(options) {
         const labels = Array.from(options.getElementsByTagName("label")).map(label => {
             const inputValue = label.querySelector('input').value;
@@ -281,26 +307,29 @@ Contact Details:
             span.setAttribute("data-is-answered", "true");
         }
     }
+</script>
 
+{{^Skip Replace}}
+<script>
     document.querySelectorAll('.quizify-field').forEach((el, index) => {
         let mcqIndex = 0;
 
         el.innerHTML = el.innerHTML.replace(
+            /\[([^\]]+)\]\^\((([^()]|\([^()]*\))*?)\)/g,
+            `<span class="popup" onclick="togglePopup(this, event)">$1<span class="comment">$2</span></span>`
+        ).replace(
             /\[\[(.*?)::(?:<br>)?(.*?)\]\](?:<br>)?/g,
             `<div class="expand"><div class="caption" onclick="toggleExpand(this)">$1</div><div class="collapse">$2</div></div>`
         ).replace(
             /(?<!\\)\(\((.*?)::(.*?[^\\])\)\)/g,
             `<span class="reveal" onclick="toggleReveal(this)">$1<span class="secret">$2</span></span>`
         ).replace(
-            /\[([^\]]+)\]\^\(([^)]+)\)/g,
-            `<span class="popup" onclick="togglePopup(this, event)">$1<span class="comment">$2</span></span>`
-        ).replace(
             /\{\{([^\}]+)\}\}/g,
             `<span class="blank" onclick="manageBlank(this)"><span class="key">$1</span><span class="entry" contenteditable="true"></span></span>`
-        ).replace(/\[([\s\S]+?)\]::\(([A-Z]+)\)(?:<br>)?/g, (match, options, correct) => {
+        ).replace(/\[([\s\S]+?)\]::\(([A-Za-z]+)\)(?:<br>)?/g, (match, options, correct) => {
             const mcqName = `front-mcq-${index}-${mcqIndex++}`;
 
-            options = options.replace(/<br>([A-Za-z])\. (.*?)(?=(<br>[A-Za-z]\. |$))/g, (match, letter, description) => {
+            options = options.replace(/<br>([A-Za-z])\. ?(.*?)(?=(<br>[A-Za-z]\.|$))/g, (match, letter, description) => {
                 return `<label class="option"><span class="option-header"><input type="${correct.length === 1 ? "radio" : "checkbox"}" name="${mcqName}" value="${letter}"><span class="option-seq">${letter}. </span></span><span class="option-desc">${description}</span></label>`;
             });
 
@@ -308,15 +337,11 @@ Contact Details:
             return `<div class="choice"><div class="options">${options}</div><span class="feedback" onclick="validateChoice(this)" data-correct-answers="${correct}" data-is-answered="false">${mcqType}点击显示答案</span></div>`;
         });
     });
+</script>
+{{/Skip Replace}}
 
+<script>
     document.querySelectorAll('.options').forEach(shuffleOptions);
-
-    document.addEventListener("click", () => {
-        document.querySelectorAll('.comment').forEach((comment) => {
-            comment.style.opacity = 0;
-            comment.style.visibility = "hidden";
-        });
-    });
 
     document.querySelectorAll('.blank').forEach(element => {
         element.setAttribute("tabindex", "0");
@@ -380,12 +405,30 @@ Contact Details:
                 togglePopup(this, e);
             }
         });
-        element.addEventListener("keyup", function(e) {
-            if (e.key === "Control") {
-                e.preventDefault();
-                togglePopup(this, e);
-            }
+        element.addEventListener("blur", function() {
+            const comment = element.querySelector('.comment');
+            comment.style.opacity = 0;
+            comment.style.visibility = "hidden";
         });
     });
-/* 献给所有热爱生活热爱学习的朋友。翏央，20241230 */
+
+    document.addEventListener("keydown", function(event) {
+        if (document.activeElement !== entry) {
+            if (event.shiftKey && event.code === 'KeyR') {
+                playAutoAudio();
+            }
+
+            if (event.key === "Enter") {
+                event.preventDefault();
+                document.activeElement.blur();
+            }
+
+            if (event.key === "1" || event.key === "2" || event.key === "3" || event.key === "4") {
+                event.preventDefault();
+                showAnswer();
+            }
+        }
+    });
+
+/* 献给所有热爱生活热爱学习的朋友。翏央，20250214 */
 </script>
