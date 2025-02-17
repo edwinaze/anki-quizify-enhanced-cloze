@@ -199,7 +199,7 @@ html:not(.mobile) .card {
     background-color: var(--popup-bg);
     color: var(--card-bg);
     border-radius: 0.7em;
-    font-size: 64%;
+    font-size: 80%;
     user-select: none;
     vertical-align: middle;
 }
@@ -220,6 +220,7 @@ html:not(.mobile) .card {
     max-width: 75%;
     white-space: nowrap;
     box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
 }
 
 .comment::after {
@@ -309,7 +310,8 @@ html:not(.mobile) .card {
 
 .reveal:not(.active) {
     text-decoration-line: underline;
-    text-decoration-style: wavy;
+    text-decoration-style: dashed;
+    text-decoration-color: var(--reveal-fg-hover);
     text-underline-offset: 0.2em;
 }
 
@@ -469,6 +471,19 @@ html:not(.mobile) img:active {
     z-index: 100;
 }
 
+img.icon {
+    pointer-events: none;
+    user-select: none;
+    display: inline-block;
+    vertical-align: middle;
+    margin: 0 .2em;
+    border-radius: 0;
+    max-width: none !important;;
+    height: 1.5em;
+    transition: none;
+    filter: none;
+}
+
 /* -------------------------------------------------- 表格 */
 table {
     border-collapse: separate;
@@ -552,6 +567,16 @@ u {
     text-underline-offset: 0.2em;
 }
 
+mark {
+    border: .1em solid var(--popup-bg);
+    color: var(--popup-bg);
+    background-color: transparent;
+    padding: .1rem .5rem;
+    margin: 0 .2rem;
+    border-radius: 2rem;
+    font-size: .95rem;
+}
+
 .correct {
     background-color: var(--correct-bg);
     color: var(--correct-fg);
@@ -566,6 +591,15 @@ u {
 .not-selected {
     background-color: var(--incomplete-bg);
     color: var(--incomplete-fg);
+}
+
+.pronunciation-gb,
+.pronunciation-us {
+    cursor: pointer;
+    display: inline-block;
+    margin-right: 1em;
+    vertical-align: middle;
+    font-family: "Charis SIL";
 }
 
 /* -------------------------------------------------- 字体 */
@@ -597,4 +631,9 @@ u {
 @font-face {
     font-family: "Georgia";
     src: url("_georgia.ttf");
+}
+
+@font-face {
+    font-family: "Charis SIL";
+    src: url("_CharisSIL-Regular.ttf");
 }
