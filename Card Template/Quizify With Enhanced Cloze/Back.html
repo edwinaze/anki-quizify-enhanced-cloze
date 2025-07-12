@@ -1,0 +1,43 @@
+{{FrontSide}}
+
+<span style="display:none">{{cloze:Content}}</span>
+
+<script>
+    $(function () {
+        /*
+        // Show all sections by default on back side
+        $('#note').show(0)
+        $('#info').show(0)
+        $('#mnemonics').show(0)
+        $('#extra').show(0)
+        
+        // Add active class to section headers
+        $('#note-header .caption').addClass('active')
+        $('#info-header .caption').addClass('active')
+        $('#mnemonics-header .caption').addClass('active')
+        $('#extra-header .caption').addClass('active')
+        */
+
+        // The setTimeout is needed on AnkiMobile so that the cloze is rendered before we try to toggle it
+        setTimeout(function () {
+            // Show all genuine clozes with answers
+            $('.genuine-cloze').each(function (index, elem) {
+                var key = elem.querySelector('.key');
+                var entry = elem.querySelector('.entry');
+                
+                // Hide entry field and show answer
+                entry.style.display = "none";
+                key.style.display = "inline";
+                key.style.opacity = 1;
+                
+                // Set to answer mode
+                manageCloze(elem, 'answer', false, false);
+            })
+            
+            // Show all pseudo clozes with answers
+            /*$('.pseudo-cloze').each(function (index, elem) {
+                manageCloze(elem, 'answer', false, false)
+            })*/
+        }, 0)
+    })
+</script>

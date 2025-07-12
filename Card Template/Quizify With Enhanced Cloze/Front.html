@@ -1,0 +1,629 @@
+<!-- Enhanced Cloze with Quizify Style - VERSION 1.14+ -->
+<script>
+    var scrollToClozeOnToggle = true
+    var animateScroll = true
+    var showHintsForPseudoClozes = true
+    var underlineRevealedPseudoClozes = false
+    var underlineRevealedGenuineClozes = true
+    var revealPseudoClozesByDefault = false
+    var swapLeftAndRightBorderActions = false
+    var revealNextGenuineClozeShortcut = "J"
+    var revealAllGenuineClozesShortcut = "Shift+J"
+    var revealNextPseudoClozeShortcut = "N"
+    var revealAllPseudoClozesShortcut = "Shift+N"
+</script>
+<!-- CONFIG END -->
+
+<div class="quizify-flashcard">
+    <div class="quizify-deck">{{Deck}}</div>
+
+    <div id="card-body">
+        <div id="main-section" class="quizify-field content">
+            <!-- this element will contain the actual content - the enhanced clozes -->
+            <span id="enhanced-clozes"></span>
+        </div>
+
+        <div id="functional-elements">
+            <div id="show-one-cloze-left"></div>
+            <div id="show-one-cloze-right"></div>
+            <div id="no-more-cloze"></div>
+        </div>
+    </div>
+
+    <div class="quizify-tags">{{clickable:Tags}}</div>
+</div>
+
+<!-- ENHANCED_CLOZE -->
+<span id="enhanced-cloze-content" style="display:none">{{Content}}</span>
+<span style="display:none;" id="edit-clozes">{{edit:cloze:Content}}</span>
+
+<!-- prevent Anki from complaining about clozes not being used as clozes -->
+<span style="display:none">{{cloze:Content}}</span>
+
+<!-- fix no-cloze-basic-mode cards on AnkiDroid, without this AnkiDroid says that clozes are missing -->
+<span style="display:none">{{cloze:Cloze99}}</span>
+
+<script>
+    var enhancedClozesData = {
+        "clozeId": [],
+        "answers": [],
+        "hints": [],
+    }
+
+    async function enhancedClozesMain() {
+        // Regex for clozes
+        const clozeRegex = /{(?:){c(\d+)::([\W\w]*?)(?:::([\W\w]*?))?}}/g
+
+        var ctrlDown = false;
+
+        await maybeInjectJquery()
+        defineEnhancedClozeAddEventListener()
+        setupKeyListenerForCtrlKey()
+        prepareEnhancedClozesData()
+        prepareEnhancedClozesHTML()
+        maybeScrollToFirstGenuineCloze()
+        setupClozeEvents()
+        setupEditFieldDuringReview()
+        setupQuizifyTags()
+        setupQuizifyDeck()
+
+        function prepareEnhancedClozesData() {
+            var content = document.getElementById("enhanced-cloze-content").innerHTML
+            // 解码HTML实体
+            content = content.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+
+            var match = clozeRegex.exec(content);
+            while (match != null) {
+                enhancedClozesData["clozeId"].push(match[1])
+                enhancedClozesData["answers"].push(match[2])
+                enhancedClozesData["hints"].push(match[3] !== undefined ? match[3] : "")
+                match = clozeRegex.exec(content);
+            }
+        }
+
+        function prepareEnhancedClozesHTML() {
+            var ord = `{{#c1}}1{{/c1}}{{#c2}}2{{/c2}}{{#c3}}3{{/c3}}{{#c4}}4{{/c4}}{{#c5}}5{{/c5}}{{#c6}}6{{/c6}}{{#c7}}7{{/c7}}{{#c8}}8{{/c8}}{{#c9}}9{{/c9}}{{#c10}}10{{/c10}}{{#c11}}11{{/c11}}{{#c12}}12{{/c12}}{{#c13}}13{{/c13}}{{#c14}}14{{/c14}}{{#c15}}15{{/c15}}{{#c16}}16{{/c16}}{{#c17}}17{{/c17}}{{#c18}}18{{/c18}}{{#c19}}19{{/c19}}{{#c20}}20{{/c20}}{{#c21}}21{{/c21}}{{#c22}}22{{/c22}}{{#c23}}23{{/c23}}{{#c24}}24{{/c24}}{{#c25}}25{{/c25}}{{#c26}}26{{/c26}}{{#c27}}27{{/c27}}{{#c28}}28{{/c28}}{{#c29}}29{{/c29}}{{#c30}}30{{/c30}}{{#c31}}31{{/c31}}{{#c32}}32{{/c32}}{{#c33}}33{{/c33}}{{#c34}}34{{/c34}}{{#c35}}35{{/c35}}{{#c36}}36{{/c36}}{{#c37}}37{{/c37}}{{#c38}}38{{/c38}}{{#c39}}39{{/c39}}{{#c40}}40{{/c40}}{{#c41}}41{{/c41}}{{#c42}}42{{/c42}}{{#c43}}43{{/c43}}{{#c44}}44{{/c44}}{{#c45}}45{{/c45}}{{#c46}}46{{/c46}}{{#c47}}47{{/c47}}{{#c48}}48{{/c48}}{{#c49}}49{{/c49}}{{#c50}}50{{/c50}}`
+            ord = ord.trim()
+
+            // create html with enhanced-clozes and insert it into the enhanced-clozes element
+            var content = document.getElementById("enhanced-cloze-content").innerHTML
+            var html = ""
+            var ctr = 0
+            var prevLastIndex = 0
+            match = clozeRegex.exec(content);
+            while (match !== null) {
+                var startIdx = clozeRegex.lastIndex - match[0].length
+                html += content.slice(prevLastIndex, startIdx)
+
+                var clozeType = ord == enhancedClozesData["clozeId"][ctr] ? "genuine-cloze" : "pseudo-cloze"
+                html += `<span class="${clozeType} blank" show-state="hint" cid="${enhancedClozesData["clozeId"][ctr]}" index="${ctr}">
+                    <span class="key">${enhancedClozesData["hints"][ctr]}</span>
+                    <span class="entry" contenteditable="false"></span>
+                </span>`
+
+                prevLastIndex = clozeRegex.lastIndex
+                match = clozeRegex.exec(content);
+                ctr += 1
+            }
+            html += content.slice(prevLastIndex)
+
+            // 添加Quizify辅助功能
+            html = html.replace(
+                /\[\[(.*?)::(?:<br>)?(.*?)\]\](?:<br>)?/g,
+                `<div class="expand"><div class="caption" onclick="toggleExpand(this)">$1</div><div class="collapse">$2</div></div>`
+            ).replace(
+                /(?<!\\)\(\((.*?)::(.*?[^\\])\)\)/g,
+                `<span class="reveal" onclick="toggleReveal(this)">$1<span class="secret">$2</span></span>`
+            ).replace(
+                /\[([^\]]+)\]\^\(([^)]+)\)/g,
+                `<span class="popup" onclick="togglePopup(this, event)">$1<span class="comment">$2</span></span>`
+            );
+
+            var enhDiv = document.getElementById("enhanced-clozes")
+            enhDiv.innerHTML = html
+
+            // genuine clozes refer to those belong to current card and need to be answered
+            // pseudo clozes refer to the opposite
+            // 新的逻辑：显示当前genuine cloze之前的所有填空
+            var currentGenuineClozeFound = false;
+
+            $('.genuine-cloze, .pseudo-cloze').each(function (index, elem) {
+                if ($(elem).hasClass('genuine-cloze') && !currentGenuineClozeFound) {
+                    // 找到第一个genuine cloze，标记为当前正在回答的
+                    currentGenuineClozeFound = true;
+                    toggleCloze(elem, 'hint'); // 当前的显示为提示状态
+                } else if (!currentGenuineClozeFound) {
+                    // 在当前genuine cloze之前的所有空都显示答案
+                    toggleCloze(elem, 'answer');
+                    $(elem).addClass('cloze-answered'); // 添加无样式class
+                } else {
+                    // 当前genuine cloze之后的显示为提示状态
+                    toggleCloze(elem, 'hint');
+                }
+            });
+
+            $('.pseudo-cloze').css('cursor', 'pointer')
+            $('.genuine-cloze').css('cursor', 'pointer')
+            $('#show-one-cloze-left').css('cursor', 'pointer')
+            $('#show-one-cloze-right').css('cursor', 'pointer')
+
+            // this prevents the blue selection briefly showing up on mobile when tapping on a cloze
+            $('.pseudo-cloze').addClass('disable-select')
+            $('.genuine-cloze').addClass('disable-select')
+            $('#show-one-cloze-left').addClass('disable-select')
+            $('#show-one-cloze-right').addClass('disable-select')
+        }
+
+        function maybeScrollToFirstGenuineCloze() {
+            if ($('.genuine-cloze').length != 0) {
+                maybeScrollToCloze($('.genuine-cloze').first().get(0));
+            }
+        }
+
+        function setupClozeEvents() {
+            if (typeof firstTimeLoadingEnhancedCloze === 'undefined') {
+                firstTimeLoadingEnhancedCloze = false
+                if (/webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                    setupIOsClozeClickEvents()
+                } else {
+                    setupDesktopAndAndroidClozeClickEvents()
+                }
+            }
+            setupClozeKeyEvents()
+        }
+
+        function setupDesktopAndAndroidClozeClickEvents() {
+            $(document).on('click', '.pseudo-cloze', function (event) {
+                manageCloze(event.target, 'toggle');
+            });
+
+            $(document).on('click', '.genuine-cloze', function (event) {
+                manageCloze(event.target, 'toggle');
+            });
+
+            $(document).on('click', '#show-one-cloze-left', function (event) {
+                revealOneClozeOfAType(swapLeftAndRightBorderActions ? "pseudo" : "genuine");
+            });
+
+            $(document).on('click', '#show-one-cloze-right', function (event) {
+                revealOneClozeOfAType(swapLeftAndRightBorderActions ? "genuine" : "pseudo");
+            });
+        }
+
+        function setupIOsClozeClickEvents() {
+            addMobileClickHandler('.pseudo-cloze', function (event) {
+                manageCloze(event.target, 'toggle');
+            })
+            addMobileClickHandler('.genuine-cloze', function (event) {
+                manageCloze(event.target, 'toggle');
+            })
+            addMobileClickHandler('#show-one-cloze-left', function (event) {
+                revealOneClozeOfAType(swapLeftAndRightBorderActions ? "pseudo" : "genuine");
+            })
+            addMobileClickHandler('#show-one-cloze-right', function (event) {
+                revealOneClozeOfAType(swapLeftAndRightBorderActions ? "genuine" : "pseudo");
+            })
+        }
+
+        function addMobileClickHandler(selector, callback) {
+            const distanceThreshold = 10;
+            let touchStartPosition = null;
+
+            $(document).on('touchstart', selector, function (event) {
+                const touches = event.originalEvent.touches;
+                if (touches.length === 1) {
+                    const touch = touches[0];
+                    touchStartPosition = { x: touch.clientX, y: touch.clientY };
+                } else {
+                    touchStartPosition = null;
+                }
+            });
+
+            $(document).on('touchend', selector, function (event) {
+                const changedTouches = event.originalEvent.changedTouches;
+                if (touchStartPosition && changedTouches.length === 1) {
+                    const changedTouch = changedTouches[0];
+                    const touchEndX = changedTouch.clientX;
+                    const touchEndY = changedTouch.clientY;
+                    const diffX = Math.abs(touchStartPosition.x - touchEndX);
+                    const diffY = Math.abs(touchStartPosition.y - touchEndY);
+                    if (diffX < distanceThreshold && diffY < distanceThreshold) {
+                        callback(event);
+                    }
+                }
+                touchStartPosition = null;
+            });
+        }
+
+        function setupClozeKeyEvents() {
+            window.enhancedClozeAddEventListener("keydown", (event) => {
+                if (shortcutMatcher(revealNextGenuineClozeShortcut)(event)) {
+                    revealOneClozeOfAType("genuine");
+                }
+                if (shortcutMatcher(revealAllGenuineClozesShortcut)(event)) {
+                    toggleAllClozesOfAType("genuine")
+                }
+                if (shortcutMatcher(revealNextPseudoClozeShortcut)(event)) {
+                    revealOneClozeOfAType("pseudo");
+                }
+                if (shortcutMatcher(revealAllPseudoClozesShortcut)(event)) {
+                    toggleAllClozesOfAType("pseudo");
+                }
+            })
+        }
+
+        function setupEditFieldDuringReview() {
+            moveEditClozesElm()
+
+            $("#enhanced-clozes").off('click').on('click', function (event) {
+                if (document.getElementsByClassName("EFDRC-outline").length == 0) return
+                if (!ctrlDown) return
+                activateEditFieldDuringReview()
+            });
+
+            function moveEditClozesElm() {
+                var editClozesElm = document.getElementById("edit-clozes")
+                document.getElementById("main-section").appendChild(editClozesElm)
+            }
+
+            function activateEditFieldDuringReview() {
+                var enhancedClozesElm = document.getElementById("enhanced-clozes")
+                var editClozesElm = document.getElementById("edit-clozes")
+                if (["inline", ""].includes(enhancedClozesElm.style.display)) {
+                    enhancedClozesElm.style.display = "none";
+                    editClozesElm.style.display = "inline";
+                } else {
+                    enhancedClozesElm.style.display = "inline";
+                    editClozesElm.style.display = "none";
+                }
+                setTimeout(() => {
+                    editable = editClozesElm.getElementsByClassName("EFDRC-outline")[0]
+                    editable.onfocus()
+                    editable.focus()
+                })
+            }
+        }
+
+        function setupQuizifyTags() {
+            var tagsContainerEl = document.querySelectorAll(".quizify-tags > *");
+            if (tagsContainerEl.length > 0) {
+                tagsContainerEl.forEach((tagEl) => {
+                    tagEl.classList.add("quizify-tag");
+                    var tags = tagEl.innerHTML.split("::").filter(Boolean);
+                    tagEl.innerHTML = tags[tags.length - 1].trim();
+                });
+            } else {
+                var tagsContainer = document.querySelector(".quizify-tags");
+                if (tagsContainer) {
+                    var tags = tagsContainer.innerHTML.split(" ").filter(Boolean);
+                    var html = "";
+                    tags.forEach((tag) => {
+                        var childTag = tag.split("::").filter(Boolean);
+                        html += "<span class='quizify-tag'>" + childTag[childTag.length - 1] + "</span>";
+                    });
+                    tagsContainer.innerHTML = html;
+                }
+            }
+        }
+
+        function setupQuizifyDeck() {
+            var deckEl = document.querySelector(".quizify-deck");
+            if (deckEl) {
+                var subDecks = deckEl.innerHTML.split("::").filter(Boolean);
+                var html = [];
+                subDecks.forEach((subDeck) => {
+                    html.push("<span class='quizify-subdeck'>" + subDeck + "</span>");
+                });
+                deckEl.innerHTML = html.join("&nbsp;/&nbsp;");
+            }
+        }
+
+        function revealOneClozeOfAType(clozeType) {
+            if (!["genuine", "pseudo"].includes(clozeType)) {
+                console.log(`clozeType has unexpected value: ${clozeType}`)
+            }
+
+            if (!$(`.${clozeType}-cloze[show-state="hint"]`).length) {
+                $('#no-more-cloze').animate({
+                    display: "toggle",
+                }, 500);
+                return
+            }
+
+            var hiddenClozes = $(`.${clozeType}-cloze[show-state="hint"]`)
+            if (hiddenClozes.length != 0) {
+                revealCloze(hiddenClozes[0]);
+            }
+        }
+
+        function toggleAllClozesOfAType(clozeType) {
+            if (!["genuine", "pseudo"].includes(clozeType)) {
+                console.log(`clozeType has unexpected value: ${clozeType}`)
+            }
+
+            var allRevealed = !$(`.${clozeType}-cloze[show-state="hint"`).length
+            $(`.${clozeType}-cloze`).each(function (index, elem) {
+                toggleCloze(elem, allRevealed ? "hint" : "answer");
+            })
+        }
+
+        function revealCloze(elem) {
+            if (!isVisible(elem)) {
+                maybeScrollToCloze(elem);
+            } else {
+                manageCloze(elem, 'answer');
+                maybeScrollToCloze(elem);
+            }
+        }
+
+        function isVisible(elm) {
+            var rect = elm.getBoundingClientRect();
+            var viewHeight = Math.max(document.documentElement.clientHeight, window.innerHeight);
+            return !(rect.bottom < 0 || rect.top - viewHeight >= 0);
+        }
+
+        function maybeScrollToCloze(elem) {
+            if (!scrollToClozeOnToggle) return
+            $('html, body').animate({
+                scrollTop: $(elem).offset().top - 300
+            }, animateScroll ? 500 : 0);
+        }
+
+        function defineEnhancedClozeAddEventListener() {
+            if (typeof window.enhancedClozeEventListener != "undefined") {
+                for (const listener of window.enhancedClozeEventListener) {
+                    const type = listener[0]
+                    const handler = listener[1]
+                    document.removeEventListener(type, handler)
+                }
+            }
+            window.enhancedClozeEventListener = []
+
+            window.enhancedClozeAddEventListener = function (type, handler) {
+                document.addEventListener(type, handler)
+                window.enhancedClozeEventListener.push([type, handler])
+            }
+        }
+
+        var specialCharCodes = {
+            "-": "minus", "=": "equal", "[": "bracketleft", "]": "bracketright",
+            ";": "semicolon", "'": "quote", "`": "backquote", "\\": "backslash",
+            ",": "comma", ".": "period", "/": "slash",
+        };
+
+        function shortcutMatcher(shortcut) {
+            var shortcutKeys = shortcut.toLowerCase().split(/[+]/).map(key => key.trim())
+            var mainKey = shortcutKeys[shortcutKeys.length - 1]
+            if (mainKey.length === 1) {
+                if (/\d/.test(mainKey)) {
+                    mainKey = "digit" + mainKey
+                } else if (/[a-zA-Z]/.test(mainKey)) {
+                    mainKey = "key" + mainKey
+                } else {
+                    var code = specialCharCodes[mainKey];
+                    if (code) mainKey = code
+                }
+            }
+            var ctrl = shortcutKeys.includes("ctrl")
+            var shift = shortcutKeys.includes("shift")
+            var alt = shortcutKeys.includes("alt")
+
+            var matchShortcut = function (ctrl, shift, alt, mainKey, event) {
+                if (event.originalEvent !== undefined) event = event.originalEvent
+                if (mainKey !== event.code.toLowerCase()) return false
+                if (ctrl !== (event.ctrlKey || event.metaKey)) return false
+                if (shift !== event.shiftKey) return false
+                if (alt !== event.altKey) return false
+                return true
+            }.bind(window, ctrl, shift, alt, mainKey)
+
+            return matchShortcut
+        }
+
+        function setupKeyListenerForCtrlKey() {
+            window.enhancedClozeAddEventListener("keydown", function (ev) {
+                if (isCtrlKey(ev.code)) ctrlDown = true;
+            })
+            window.enhancedClozeAddEventListener("keyup", function (ev) {
+                if (isCtrlKey(ev.code)) ctrlDown = false;
+            })
+        }
+
+        function isCtrlKey(keycode) {
+            return ['ControlLeft', 'MetaLeft'].includes(keycode)
+        }
+
+        function showNextElement(elem) {
+            $(elem).parent().next().toggle(300);
+            $(elem).toggleClass('active');
+        };
+
+        async function maybeInjectJquery() {
+            if (typeof jQuery === "undefined") {
+                await injectScript("_jquery.min.js");
+            }
+        }
+
+        async function injectScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.async = true;
+                script.onload = resolve;
+                script.onerror = (event) => {
+                    reject(new Error(`Script load error for source: ${src}`));
+                };
+                document.head.appendChild(script);
+            });
+        };
+    }
+
+    // Unified cloze management function combining Enhanced Cloze and Quizify features
+    function manageCloze(elem, displayOption, allowInput = true, allowRepeat = true) {
+        if (elem == null) return
+
+        // Get the cloze element
+        var cloze;
+        if (elem.classList.contains("genuine-cloze") || elem.classList.contains("pseudo-cloze")) {
+            cloze = elem
+        } else {
+            cloze = $(elem).closest(".genuine-cloze")[0] || $(elem).closest(".pseudo-cloze")[0]
+        }
+
+        if (!cloze) return;
+
+        var index = $(cloze).attr('index');
+        var answer = enhancedClozesData["answers"][index]
+        var hint = enhancedClozesData["hints"][index]
+        var key = cloze.querySelector('.key');
+        var entry = cloze.querySelector('.entry');
+
+        if (!showHintsForPseudoClozes && cloze.classList.contains('pseudo-cloze')) {
+            hint = ""
+        }
+
+        // Handle pseudo clozes that should be revealed by default
+        if (revealPseudoClozesByDefault || answer.startsWith('#')) {
+            if (answer.startsWith('#')) {
+                answer = answer.slice(1)
+            }
+            if (cloze.classList.contains('pseudo-cloze')) {
+                $(cloze).attr('show-state', 'answer');
+                //key.textContent = answer;
+                key.innerHTML = answer;
+                key.style.opacity = 1;
+                return
+            }
+        }
+
+        // Handle input functionality for genuine clozes
+        if (cloze.classList.contains('genuine-cloze') && allowInput) {
+            if (displayOption === 'toggle') {
+                var currentState = $(cloze).attr('show-state');
+                if (currentState === 'hint') {
+                    // Show input field
+                    $(cloze).attr('show-state', 'input');
+                    key.style.opacity = 0;
+                    key.style.display = "none";
+                    entry.style.display = "inline";
+                    entry.classList.remove("correct", "incorrect");
+                    entry.textContent = "";
+                    entry.contentEditable = true;
+                    entry.focus();
+                    editEntry(entry, key, cloze, answer);
+                    return;
+                } else if (currentState === 'input' || currentState === 'answered') {
+                    // Show answer directly
+                    displayOption = 'answer';
+                }
+            }
+        }
+
+        // Original Enhanced Cloze toggle logic
+        if (displayOption == 'answer' || (displayOption == 'toggle' && $(cloze).attr('show-state') == 'hint')) {
+            $(cloze).attr('show-state', 'answer');
+            key.innerHTML = answer;;
+            key.style.opacity = 1;
+            key.style.display = "inline";
+            entry.style.display = "none";
+        } else if (displayOption == 'hint' || (displayOption == 'toggle' && $(cloze).attr('show-state') == 'answer')) {
+            $(cloze).attr('show-state', 'hint');
+            var hintText = hint ? hint : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+            hintText = hintText || '______'; // 显示下划线或提示文字，去掉[]格式
+            key.innerHTML = hintText;
+            key.style.opacity = 1;
+            key.style.display = "inline";
+            entry.style.display = "none";
+        }
+
+        // 在点击切换时添加动画
+        $(cloze).hide(0);
+        $(cloze).fadeIn(500);
+
+
+        // rerun mathjax
+        try {
+            MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
+        } catch { }
+        try {
+            MathJax.typesetPromise()
+        } catch { }
+    }
+
+    // Input validation function from Quizify
+    function editEntry(entry, key, cloze, correctAnswer) {
+        entry.addEventListener("keydown", (event) => {
+            if (event.key === "Backspace") {
+                event.stopPropagation();
+            }
+            if (event.key === "Enter") {
+                entry.blur();
+            }
+        });
+
+        entry.onblur = () => {
+            entry.contentEditable = false;
+            const answer = entry.textContent.trim();
+            if (!answer) {
+                entry.style.display = "none";
+                key.style.display = "inline";
+                key.style.opacity = 1;
+                $(cloze).attr('show-state', 'hint');
+                return;
+            }
+
+            $(cloze).attr('show-state', 'answered');
+            if (answer === correctAnswer.trim()) {
+                entry.classList.add("correct");
+                entry.textContent = `${answer}✔`;
+                cloze.style.pointerEvents = 'none';
+                cloze.setAttribute("tabindex", "-1");
+            } else {
+                entry.classList.add("incorrect");
+                entry.textContent = `${answer}✘`;
+            }
+        };
+    }
+
+    // Legacy function for backward compatibility
+    function toggleCloze(elem, displayOption) {
+        manageCloze(elem, displayOption, false, false);
+        // Quizify辅助功能
+        window.toggleExpand = function (el) {
+            const collapse = el.nextElementSibling;
+            if (collapse.style.display === "block") {
+                collapse.style.display = "none";
+                el.classList.remove("active");
+            } else {
+                collapse.style.display = "block";
+                el.classList.add("active");
+            }
+        }
+
+        window.toggleReveal = function (el) {
+            const secret = el.querySelector('.secret');
+            if (secret.style.display === "inline") {
+                secret.style.display = "none";
+                el.classList.remove("active");
+            } else {
+                secret.style.display = "inline";
+                el.classList.add("active");
+            }
+        }
+
+        window.togglePopup = function (popup, e) {
+            const comment = popup.querySelector('.comment');
+            if (comment.style.visibility === "visible") {
+                comment.style.opacity = 0;
+                comment.style.visibility = "hidden";
+            } else {
+                comment.style.visibility = "visible";
+                comment.style.opacity = 1;
+            }
+            e.stopPropagation();
+        }
+
+    }
+
+    enhancedClozesMain()
+</script>
