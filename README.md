@@ -2,8 +2,6 @@
 
 <img width="743" alt="word" src="https://github.com/user-attachments/assets/a174f425-9580-4aa8-8b81-4637a6f7c8d3" />
 
-[TOC]
-
 # Quizify (格致)：Anki 全能模板
 
 > 《禮記·大學》：「欲誠其意者，先致其知，致知在格物。」
@@ -134,6 +132,10 @@ Quizify 是一个功能强大的 Anki 模板，支持多种交互式复习功能
 - 字号均缩小2rem，因为该卡类型应用场景会有大量文字
 - 卡片刚打开时页面将自动滑动到待填填空位置，后续揭示其他填空时也会将页面与之对齐
 - 删去了 Enhanced Cloze v2.1 的额外信息功能，建议使用 Quizity 的注解格式
+
+## 📸 样例展示
+
+![QuizityWithEnhancedClozeGIF](https://github.com/user-attachments/assets/46612604-9e97-4f04-b194-d6bcdaa7ee7b)
 
 ## 🛠️ 安装方法
 
